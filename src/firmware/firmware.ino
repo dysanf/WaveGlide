@@ -14,7 +14,7 @@
 */
 
 // version
-#define VERSION "0.8.1"
+#define VERSION "0.8.1pg"
 
 // display pins
 #define sclk 13
@@ -96,8 +96,8 @@ Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085);
 #define METERS2FEET 3.28084
 #define OXYGEN_100PCT_FL 300  // FL300
 #define OXYGEN_100PCT_ALTITUDE 9144  // FL300
-int oxygen_start_fls[] = {100, 50}; // FL100, FL50, CAREFUL: length 2 expected
-int oxygen_start_alts[] = {3048, 1524}; // FL100, FL50, CAREFUL: length 2 expected
+int oxygen_start_fls[] = {120, 10}; // FL120, FL10, CAREFUL: length 2 expected
+int oxygen_start_alts[] = {3657, 3048}; // FL120, FL10, CAREFUL: length 2 expected
 uint8_t alt_setting = 0;  // used as index in above arrays
 int oxygen_pct = 0;
 
@@ -206,7 +206,7 @@ void setup(void) {
   // build GUI
   //
   displayText("START", 31, 4, DARKBLUE);
-  displayText("FL100", 64, 4, OXYBLUE);
+  displayText("FL120", 64, 4, OXYBLUE);
   tft.drawLine(94, 7, 127, 7, OXYBLUE);
   // tft.fillRect(124, 8, 4, 48, OXYBLUE);
   tft.fillRect(124, 8, 4, map(oxygen_start_fls[alt_setting], 0, OXYGEN_100PCT_FL, 48, 0), OXYBLUE);
@@ -335,13 +335,14 @@ void sense_altitude() {
     float temp;
     bmp.getTemperature(&temp);
     temperature = round(temp);
+    temperature = temperature * 9.0 / 5.0 + 32.0;
     // print numeral
     sprintf(charBuf, "%02i", constrain(temperature, 0, 99));
     tft.fillRect(99, 41, 12, 7, BLACK);
     displayText(charBuf, 99, 41, DARKBLUE);
     // Serial.print("Temperature: ");
     // Serial.print(temp);
-    // Serial.println(" C");
+    // Serial.println(" F");
 
     float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
     altitude = round(bmp.pressureToAltitude(seaLevelPressure,
@@ -431,7 +432,8 @@ void set_oxygen_pct(float alt) {
       if (alt < OXYGEN_100PCT_ALTITUDE) {
         // oxygen_pct = map(alt, 0, OXYGEN_100PCT_ALTITUDE, 0, 100); // linearly
         // oxygen_pct = (0.0000008*alt + 0.0036)*alt; // above function
-        oxygen_pct = (0.00000084*alt*alt + 0.00347*alt) - 2; // above function
+        // oxygen_pct = (0.00000084*alt*alt + 0.00347*alt) - 2; // above function
+        oxygen_pct = (0.00000102*alt*alt + 0.00355*(alt-5000)); // above function, changed to low function of o2 - Jon
       } else {
         oxygen_pct = 100; // 100%
       }
@@ -440,7 +442,7 @@ void set_oxygen_pct(float alt) {
     }
     // apply adjustement setting
     oxygen_pct = oxygen_pct * adj_pcts[adj_setting];
-    oxygen_pct = constrain(oxygen_pct, 0, 100);
+    oxygen_pct = constrain(oxygen_pct, 0, 100); 
   }
   // Display
   tft.fillRect(28, 36, 18, 7, BLACK);
